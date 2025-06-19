@@ -13,12 +13,6 @@ pipeline {
             }
         }
 
-        stage('build-stage') {
-            steps {
-                sh 'mvn clean install'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 script {
@@ -30,12 +24,11 @@ pipeline {
         stage('Deploy Container on Agent with Volume') {
             steps {
                 script {
-                    def hostVolumePath = '/home/ubuntu/my-app-data'
-                    sh "mkdir -p ${hostVolumePath}"
+                    sh "docker volume create docker-volume"
                     sh "docker stop ${DOCKER_IMAGE}:V${env.BUILD_NUMBER} || true"
                     sh "docker rm ${DOCKER_IMAGE}:V${env.BUILD_NUMBER} || true"
 
-                    docker.image("${DOCKER_IMAGE}:V${env.BUILD_NUMBER}").run("-p 8080:8080 -v ${hostVolumePath}:/app -d")
+                    docker.image("${DOCKER_IMAGE}:V${env.BUILD_NUMBER}").run("-p 8080:8080 -v docker-volume:/app -d")
 
                     echo "Waiting for container to start..."
                     sh "docker ps | grep ${DOCKER_IMAGE}:V${env.BUILD_NUMBER}"
