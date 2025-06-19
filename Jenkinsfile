@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        label 'build'
+        label 'docker-agent'
     }
     environment {
 	    DOCKER_IMAGE = 'ashokm77/test-repo'
@@ -9,7 +9,7 @@ pipeline {
     stages {
             stage('checkout-stage') {
                 steps {
-                    git branch: 'master', credentialsId: 'ashoksm', url: 'https://github.com/ashok77sm/docker-sample-java-webapp.git'
+                    git branch: 'master', credentialsId: 'ashoksm', url: 'https://github.com/ashok77sm/docker-volume-java.git'
                 }
             }   
 	    stage('build-stage') {
@@ -17,13 +17,7 @@ pipeline {
                    sh 'mvn clean install'
                 }
             }
-	    stage('SonarQube Analysis Stage') {
-                steps{
-                   withSonarQubeEnv('sonarqube') { 
-                       sh "mvn clean verify sonar:sonar"
-                   }
-                }
-            }
+	    
 	    stage('Build Docker Image') {
                 steps {
                    script {
@@ -31,21 +25,20 @@ pipeline {
                    }
                 }
             }
-	    stage('Push Docker Image') {
-                steps {
-                   script {
-                      docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIAL_ID}") {
-                        dockerImage.push()
-                      }
-                   }
+	    stage('Deploy Container on Agent with Volume') {
+            steps {
+                script {
+                    def hostVolumePath = '/home/ubuntu/my-app-data'
+                    sh "mkdir -p ${hostVolumePath}"
+                    sh "docker stop ${DOCKER_IMAGE}:V${env.BUILD_NUMBER} || true" 
+                    sh "docker rm ${DOCKER_IMAGE}:V${env.BUILD_NUMBER} || true"  
+
+                    docker.image('${DOCKER_IMAGE}:V${env.BUILD_NUMBER}').run("-p 8080:8080 -v ${hostVolumePath}:/app -d")
+
+                    echo "Waiting for container to start..."
+                    sh "docker ps | grep ${DOCKER_IMAGE}:V${env.BUILD_NUMBER}"
+                    echo "Application deployed and accessible on Docker Agent's public IP on port 8080."
                 }
             }
-	    stage('Run Docker Container') {
-               steps {
-                  script {
-                    sh "docker run -d -p 9000:8080 ${DOCKER_IMAGE}:V${env.BUILD_NUMBER}"
-                  }
-               }
-	    }
-    }
-}
+        }
+
