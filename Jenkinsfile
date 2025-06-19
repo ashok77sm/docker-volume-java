@@ -28,11 +28,11 @@ pipeline {
                     sh "docker stop ${DOCKER_IMAGE}:V${env.BUILD_NUMBER} || true"
                     sh "docker rm ${DOCKER_IMAGE}:V${env.BUILD_NUMBER} || true"
 
-                    docker.image("${DOCKER_IMAGE}:V${env.BUILD_NUMBER}").run("-p 8080:8080 -v docker-volume:/app -d")
+                    docker.image("${DOCKER_IMAGE}:V${env.BUILD_NUMBER}").run("-p 9000:8080 -v docker-volume:/app -d")
 
                     echo "Waiting for container to start..."
                     sh "docker ps | grep ${DOCKER_IMAGE}:V${env.BUILD_NUMBER}"
-                    echo "Application deployed and accessible on Docker Agent's public IP on port 8080."
+                    echo "Application deployed and accessible on Docker Agent's public IP on port 9000."
                 }
             }
         }
